@@ -5,15 +5,22 @@ using namespace std;
 using namespace cv;
 
 Mat rotarImg(const Mat& img) {
-    Mat rotada(img.cols, img.rows, img.type());
+    int n_canales = img.channels();
+
+    Mat newimg(img.cols, img.rows, img.type());
 
     for (int y = 0; y < filas; y++) {
         for (int x = 0; x < cols; x++) {
-            rotada.at<Vec3b>(x, filas - 1 - y) = img.at<Vec3b>(y, x);
+            uchar* desde = img.ptr<uchar>(y) + x*n_canales;
+            uchar* hasta = rotada.ptr<uchar>(x) + (filas-1-y)*n_canales;
+
+            for (int c=0; c<n_canales; c++) {
+                hasta[c] = desde[c];
+            }
         }
     }
 
-    return rotada;
+    return newimg;
 }
 
 int main() {

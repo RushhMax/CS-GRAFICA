@@ -4,20 +4,12 @@
 using namespace std;
 using namespace cv;
 
-Mat rotar90GradosHorario(const Mat& imagen) {
-    int filas = imagen.rows;
-    int cols = imagen.cols;
-    int canales = imagen.channels();
-
-    Mat rotada(cols, filas, imagen.type());
+Mat rotarImg(const Mat& img) {
+    Mat rotada(img.cols, img.rows, img.type());
 
     for (int y = 0; y < filas; y++) {
         for (int x = 0; x < cols; x++) {
-            if (canales == 1) {
-                rotada.at<uchar>(x, filas - 1 - y) = imagen.at<uchar>(y, x);
-            } else {
-                rotada.at<Vec3b>(x, filas - 1 - y) = imagen.at<Vec3b>(y, x);
-            }
+            rotada.at<Vec3b>(x, filas - 1 - y) = img.at<Vec3b>(y, x);
         }
     }
 
@@ -25,22 +17,22 @@ Mat rotar90GradosHorario(const Mat& imagen) {
 }
 
 int main() {
-    Mat imagen = imread("C:/Users/Rushh/Universidad/Graphics/Laboratorio2/img.jpg");
+    Mat img = imread("C:/Users/Rushh/Universidad/Graphics/Laboratorio2/img.jpg");
 
-    imshow("Imagen Original", imagen);
+    imshow(img);
     //waitKey(0);
     ///destroyAllWindows();
 
     cout<<"Nro de rotaciones? ";
     int n;cin>>n;
+    n=n%4;
 
-    n = n % 4;
-
-    for (int i = 0; i < n; i++) {
-        imagen = rotar90GradosHorario(imagen);
+    for(int i=0;i<n;i++) {
+        img = rotarImg(img);
     }
 
-    imshow("Imagen Rotada", imagen);
+    imshow(img);
+    imwrite("Rotacion_"+to_string(n)+".jpg", img);    
     waitKey(0);
     destroyAllWindows();
 

@@ -10,6 +10,62 @@ using namespace std;
 
 namespace fs = filesystem;
 
+Mat calcHistograma(const Mat& img) {
+    Mat hist = Mat::zeros(256, 1, CV_32S); 
+    int ancho = img.cols, alto = img.rows;
+
+    for (int y = 0; y<alto; y++) {
+        for (int x = 0; x<ancho; x++) {
+            uchar pixel = img.at<uchar>(y, x);
+            hist.at<int>(pixel, 0) += 1;
+        }
+    }
+
+    return hist;
+}
+
+
+
+cv::Mat equalizeHistogramManual(const cv::Mat& img) {
+    cv::Mat hist = calcHistogramManual(img);
+    cv::Mat cdf = hist.clone();
+
+    // Calcular CDF
+    for (int i = 1; i < 256; ++i) {
+        cdf.at<float>(i) += cdf.at<float>(i - 1);
+    }
+
+    // Normalizar CDF
+    cdf /= (img.rows * img.cols);
+    cdf *= 255;
+
+    // Generar imagen ecualizada
+    cv::Mat img_eq = img.clone();
+    for (int i = 0; i < img.rows; ++i) {
+        for (int j = 0; j < img.cols; ++j) {
+            uchar pixel = img.at<uchar>(i, j);
+            img_eq.at<uchar>(i, j) = static_cast<uchar>(cdf.at<float>(pixel));
+        }
+    }
+
+    return img_eq;
+}
+
+
+cv::Mat thresholdManual(const cv::Mat& img, int thresh, uchar maxValue = 255) {
+    cv::Mat binarized = img.clone();
+
+    for (int i = 0; i < img.rows; ++i) {
+        for (int j = 0; j < img.cols; ++j) {
+            uchar pixel = img.at<uchar>(i, j);
+            binarized.at<uchar>(i, j) = (pixel > thresh) ? maxValue : 0;
+        }
+    }
+
+    return binarized;
+}
+
+
 // Función que ecualiza la imagen, guarda resultados en la carpeta destino
 void equalizeHistogramAndSave(const cv::Mat& img, const fs::path& outputDir) {
     if (img.empty()) {
@@ -79,24 +135,22 @@ int main() {
     for (const auto& entry : fs::directory_iterator(inputFolder)) {
         if (!entry.is_regular_file()) continue;
 
+        // Crear carpeta de salida para cada imagen
         string path = entry.path().string();
-
         imgCount++;
         ostringstream folderName;
         folderName<<"img_"<<setfill('0')<<setw(3)<<imgCount;
         fs::path imgOutputDir = fs::path(outputFolder) / folderName.str();
         fs::create_directories(imgOutputDir);
 
-        // Cargar imagen
+        // Cargar imagen y copiar a la nueva carpeta
         Mat img = imread(path, IMREAD_GRAYSCALE);
         imwrite((imgOutputDir / "imagen.jpg").string(), img);
 
         // HISTOGRAMA 
         int tam_histograma = 256;
-        float rango[] = {0, 256};
-        const float* histrango = {rango};
-        Mat hist;
-        calcHist(&img, 1, 0, Mat(), hist, 1, &tam_histograma, &histrango);
+        Mat hist = calcHistograma(img);
+        //calcHist(&img, 1, 0, Mat(), hist, 1, &tam_histograma, &histrango);
 
         // IMAGEN HISTOGRAMA
         int hist_w = 512, hist_h = 400;
@@ -141,75 +195,3 @@ int main() {
     return 0;
 }
 
-
-// Mat calcularHistograma(const Mat& imagen, const string& titulo) {
-//     Mat hist;
-//     int size_histograma = 256;
-//     float rango[] = {0, 256};
-//     const float* rango_histograma = {rango};
-
-//     calcHist(&imagen, 1, 0, Mat(), hist, 1, &size_histograma, &rango_histograma);
-
-//     // Dibujar histograma
-//     int hist_w = 1024, hist_h = 600;
-//     int bin_w = cvRound((double)hist_w / size_histograma);
-
-//     Mat histImage(hist_h, hist_w, CV_8UC1, Scalar(255));
-
-//     normalize(hist, hist, 0, histImage.rows, NORM_MINMAX);
-
-//     for (int i = 1; i < size_histograma; i++) {
-//         line(histImage,
-//              Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
-//              Point(bin_w * i, hist_h - cvRound(hist.at<float>(i))),
-//              Scalar(0), 2);
-//     }
-
-//     imshow(titulo, histImage);
-//     imwrite(titulo + "_histograma.png", histImage); 
-
-//     cout<<"Histograma guardado como: "<<titulo<<"_histograma.png"<<endl;
-
-//     for (int i = 0; i < tam_histograma; ++i) {
-//         cout<<"Intensidad "<<i<<": "<<hist.at<float>(i)<<endl;
-//     }
-//     return histImage;
-// }
-
-// int main() {
-//     string folder = "imagenes/";
-//     for (const auto& entry : fs::directory_iterator(folderPath)) {
-//         if (entry.is_regular_file()) {
-//             string filePath = entry.path().string();
-            
-//             Mat img = imread(filePath, IMREAD_GRAYSCALE);
-//             cout<<"Imagen cargada: "<<filePath<<endl;
-
-//             //imshow("Imagen", img);
-//             //waitKey(0);  
-            
-//         }
-//     }
-//     Mat histograma;
-
-//     imshow("Imagen Original", imagen);
-    
-//     histograma = calcularHistograma(imagen, "Histograma Original");
-
-//     Mat imagen_eq;
-//     equalizeHist(imagen, imagen_eq);
-//     imshow("Imagen Ecualizada", imagen_eq);
-//     calcularHistograma(imagen_eq, "Histograma Ecualizado");
-
-//     // Binarización (usando umbral fijo o automático con Otsu)
-//     Mat imagen_bin;
-//     double umbral = threshold(imagen_eq, imagen_bin, 0, 255, THRESH_BINARY | THRESH_OTSU);
-
-//     imshow("Imagen Binarizada (Otsu)", imagen_bin);
-//     cout << "Umbral usado por Otsu: " << umbral << endl;
-
-//     waitKey(0);
-//     return 0;
-// }
-
-// // Compilar con: g++ main.cpp -o histograma -lopencv_core -lopencv_imgproc -lopencv_highgui

@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build opencv",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-IC:/Users/rushe/Documents/Universidad/S7/Graphics/opencv/build/include",
+                "-LC:/Users/rushe/Documents/Universidad/S7/Graphics/opencv/build/x64/mingw/lib",
+                "src/main.cpp",
+                "-lopencv_core455",
+                "-lopencv_imgcodecs455",
+                "-lopencv_imgproc455",
+                "-o",
+                "main.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}

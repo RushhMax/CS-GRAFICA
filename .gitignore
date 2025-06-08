@@ -1,0 +1,5 @@
+# Ignorar la carpeta open cv en lab5
+lab5/OpenCV/
+
+lab5/Prueba/.vs
+

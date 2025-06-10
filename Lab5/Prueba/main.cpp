@@ -1,12 +1,13 @@
-#include <opencv2/opencv.hpp>
+ï»¿#include <opencv2/opencv.hpp>
 #include <vector>
 
 using namespace cv;
 using namespace std;
 
 
-uchar estructura[] = { 255, 0, 255, 0, 0, 0, 255, 0, 255 }; // Estructura de 3x3
-Mat estructurante(3, 3, CV_8UC1, estructura); // inicializar
+VideoCapture video;
+uchar estructura[] = { 255, 0, 255, 0, 0, 0, 255, 0, 255 };
+Mat estructurante(3, 3, CV_8UC1, estructura); 
 
 void printMat(const Mat &mat) {
     for (int i = 0; i < mat.rows; i++) {
@@ -78,7 +79,6 @@ void dilating(Mat& frame, int x, int y) {
         for (int j = y; j < y + estructurante.cols; j++) {
             if (estructurante.at<uchar>(i - x, j - y) == 0 && esValido(frame, i, j)) {
                 frame.at<uchar>(i, j) = 0;
-        
             }
         }
     }
@@ -97,73 +97,136 @@ void my_Dilate(Mat &frame) {
 	frame = dilated.clone();
 }
 
-VideoCapture video;
+void drawline(Mat& frame, Point p1, Point p2) {
+	line(frame, p1, p2, Scalar(255, 0, 0), 2);
+}
+
+Point identifyPoint(const Mat& frame) {
+    int sumaX = 0, sumaY = 0, contador = 0;
+    for (int i = 0; i < frame.rows; i++) {
+        for (int j = 0; j < frame.cols; j++) {
+            Vec3b pixel = frame.at<Vec3b>(i, j);
+            if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0) {
+                sumaX += j;
+                sumaY += i;
+                contador++;
+            }
+        }
+    }
+
+    if (contador <= 100) return Point(-1, -1);
+    //cout << "SumaX " << sumaX << " sumaY " << sumaY << endl;
+	return Point(sumaX / contador, sumaY / contador);
+}
 
 int main() {
 	// 1 Capurar video desde webcam o archivo   
-    cout << "INICIO\n";
+    cout << "\n========================================\n";
+    cout << "           LABORATORIO 5 - CS GRAFICA    \n";
+    cout << "        DetecciÃ³n y Trayectoria de Objeto\n";
+    cout << "========================================\n\n";
     bool flag = false;
-    cout << "Como desea capturar el video? LIVE (0) / UPLOAD (1)  \n"; cin >> flag;
+    cout << ">> Â¿CÃ³mo deseas capturar el video?\n";
+    cout << "    [0] En vivo (Webcam)\n";
+    cout << "    [1] Desde archivo (Upload)\n";
+    cout << "    SelecciÃ³n: ";
+    cin >> flag;
 
     if(flag) {
-        cout << "Subiendo video...\n";
-		video.open("C:/Users/rushe/Pictures/Camera Roll/video2.mp4");
+        cout << "\n Cargando video desde archivo...\n";
+        video.open("C:/Users/rushe/Documents/Universidad/S7/Graphics/CS-GRAFICA/Lab5/video1.mp4");
+		//video.open("C:/Users/rushe/Pictures/Camera Roll/video4.mp4");
         if (!video.isOpened()) {
-            cout << "Error! No se pudo abrir el video.\n";
+            cout << " Error: No se pudo abrir el video desde archivo.\n";
             return -1;
-		}
+        }
+        else {
+            cout << " Video cargado correctamente.\n";
+        }
     }
     else {
-		cout << "Capturando video en vivo.../n";
-		cout << "Presione ESC para terminar la captura./n";
-		video.open(0);
+        cout << "\n Iniciando captura en vivo desde webcam...\n";
+        cout << "   Presiona [ESC] para finalizar la grabaciÃ³n.\n";
+        video.open(0);
     }
 
+    cout << "\n Preparando el procesamiento de video...\n";
     Mat frame;
+    Size frameSize;
     vector<Point> camino; // Almacenar puntos de trayectoria
+	Point prevPoint(-1, -1); // Punto previo para dibujar la trayectoria
+    int maxX = 0, maxY = 0;
 
-    for (;;) {
-        // 2 Prepocesamiento de la imagen
-        // Escala de grises
-        // Binarización
+    video.read(frame);
+    frameSize = frame.size();  // TamaÃ±o del video original
+
+    if (frame.empty()) {
+        cout << "Error! No se pudo capturar el frame. /n";
+        return -1;
+    }
+    frameSize = frame.size();  
+
+    while(true) {
         video.read(frame);
-        if (frame.empty()) {
-            cout << "Error! No se pudo capturar el frame. /n";
-            break;
-        }
+        if (frame.empty()) {cout << "Error! No se pudo capturar el frame. /n"; break;}
 
-		// Escala de grises
+		imshow("Original", frame);
+
+        // 2 Prepocesamiento de la imagen
+		// Escala de grises y binarizaciÃ³n
 		escalaGris(frame);
-		// Binarización
-		int umbral = 100; // Umbral para binarización
+		int umbral = 100; 
 		my_binarization(frame, umbral);
-        //threshold(frame, frame, umbral, 255, THRESH_BINARY);
 
-        // 3 Detección de movimiento
-        // erosión y dilatación
-        //my_Dilate(frame);
-		my_Erode(frame);
+        // 3 DetecciÃ³n de movimiento
+		// dilatacion y erosiÃ³n
 		my_Dilate(frame);
-        //my_Erode(frame);
-        imshow("Detección", frame);
+        my_Erode(frame);
 
-        // 4 deteción de contornos
+        cvtColor(frame, frame, COLOR_GRAY2BGR);
+		// 4 deteciÃ³n de centro de objeto
+		Point currentPoint = identifyPoint(frame);
 
+        cout << "-----------------------------\n";
+        cout << " Seguimiento de objeto\n";
+        cout << "   â–ª Punto anterior: (" << prevPoint.x << ", " << prevPoint.y << ")\n";
+        cout << "   â–ª Punto actual  : (" << currentPoint.x << ", " << currentPoint.y << ")\n";
+        cout << "-----------------------------\n";
+
+
+        if(prevPoint.x == -1 && prevPoint.y == -1) { prevPoint = currentPoint; }
+        if (currentPoint.x != -1 && currentPoint.y != -1) {
+            camino.push_back(currentPoint);
+            if (currentPoint.x > maxX) maxX = currentPoint.x;
+            if (currentPoint.y > maxY) maxY = currentPoint.y;
+            drawline(frame, prevPoint, currentPoint);
+            prevPoint = currentPoint;
+        }
+		
+        imshow("Video", frame);
         if (waitKey(30) == 27) break; // Presionar ESC para terminar
     }
 
-	cout << "Finalizando captura...\n";
+    cout << "\n Finalizando captura...\n";
+    cout << "  Dimensiones del video original: " << frameSize.width << " x " << frameSize.height << "\n";
+    cout << "  Generando trayectoria completa...\n";
+
+
+    Mat trajImage(frameSize,CV_8UC3, Scalar(0, 0, 0));
+    for (size_t i = 1; i < camino.size(); i++) {
+        cout << camino[i-1] << endl;
+        line(trajImage, camino[i - 1], camino[i], Scalar(0, 255, 0), 2);
+    }
+
+    imshow("Trayectoria final", trajImage);
+    waitKey(0);
+
+    cout << "\n Proceso completado.\n";
+    cout << "   La trayectoria ha sido generada y mostrada.\n";
+    cout << "   Cierra la ventana para salir.\n";
+    cout << "\n Gracias por usar el sistema de seguimiento.\n";
 
     video.release();
     destroyAllWindows();
-
-    // Mostrar trayectoria al final
-    //Mat trajImage(480, 640, CV_8UC3, Scalar(0, 0, 0));
-    //for (size_t i = 1; i < camino.size(); i++) {
-    ///    line(trajImage, camino[i - 1], camino[i], Scalar(0, 255, 0), 2);
-    //}
-
-    //imshow("Trayectoria final", trajImage);
-    //waitKey(0);
     return 0;
 }

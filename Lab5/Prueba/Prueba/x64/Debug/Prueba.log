@@ -1,2 +1,4 @@
 ﻿  main.cpp
+C:\Users\rushe\Documents\Universidad\S7\Graphics\CS-GRAFICA\Lab5\Prueba\main.cpp(192,17): warning C4566: character represented by universal-character-name '\u25AA' cannot be represented in the current code page (1252)
+C:\Users\rushe\Documents\Universidad\S7\Graphics\CS-GRAFICA\Lab5\Prueba\main.cpp(193,17): warning C4566: character represented by universal-character-name '\u25AA' cannot be represented in the current code page (1252)
   Prueba.vcxproj -> C:\Users\rushe\Documents\Universidad\S7\Graphics\CS-GRAFICA\Lab5\Prueba\x64\Debug\Prueba.exe
